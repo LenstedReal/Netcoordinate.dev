@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Koordinat & IP Tespit Aracı — Tarımsal Harita</title>
+<meta name="description" content="Profesyonel koordinat tespit ve IP analiz aracı. Haritadan koordinat alın, IP bilgilerini gerçek zamanlı sorgulayın.">
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+
+<style>
+/* ============ TEMEL ============ */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: 'Inter', system-ui, -apple-system, Arial, sans-serif;
+  font-size: 14px; line-height: 1.55; color: #1f2937;
+  background: #eef2f5;
+  background-image:
+    radial-gradient(at 0% 0%, rgba(90,165,72,0.08) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(243,184,0,0.07) 0px, transparent 50%),
+    radial-gradient(at 50% 100%, rgba(47,90,37,0.06) 0px, transparent 50%);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+a { color: #3d7530; text-decoration: none; }
+a:hover { color: #2f5a25; }
+
+/* ============ HEADER ============ */
+.tz-header {
+  background: linear-gradient(135deg, #4a8b3a 0%, #2f5a25 100%);
+  color: #fff;
+  box-shadow: 0 2px 14px rgba(47,90,37,0.25);
+  position: sticky; top: 0; z-index: 50;
+  animation: slideDown 0.55s cubic-bezier(.22,1,.36,1) both;
+}
+@keyframes slideDown {
+  from { transform: translateY(-100%); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+.tz-header-inner {
+  max-width: 1320px; margin: 0 auto;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 22px;
+}
+.tz-logo {
+  font-family: 'Inter', sans-serif; font-weight: 800; font-size: 22px;
+  letter-spacing: -0.4px; display: flex; align-items: center; gap: 10px;
+}
+.tz-logo-mark {
+  width: 36px; height: 36px; border-radius: 10px;
+  background: linear-gradient(135deg, #ffe27a, #f3b800);
+  display: flex; align-items: center; justify-content: center;
+  color: #2f5a25; font-weight: 800;
+  box-shadow: 0 4px 12px rgba(243,184,0,0.4);
+}
+.tz-logo span { color: #ffe27a; }
+.tz-tagline {
+  font-size: 11px; color: #cfe0c2; font-weight: 500;
+  letter-spacing: 0.4px; text-transform: uppercase;
+}
+.tz-status-pill {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(255,255,255,0.13); padding: 7px 14px;
+  border-radius: 999px; font-size: 12px; font-weight: 500;
+  backdrop-filter: blur(8px);
+}
+.tz-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #6ee7b7; box-shadow: 0 0 0 4px rgba(110,231,183,0.25);
+  animation: pulse 1.8s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(110,231,183,0.55); }
+  50%      { box-shadow: 0 0 0 7px rgba(110,231,183,0); }
+}
+
+/* ============ HERO ============ */
+.tz-hero {
+  max-width: 1320px; margin: 28px auto 16px; padding: 0 22px;
+  animation: fadeUp 0.7s 0.1s cubic-bezier(.22,1,.36,1) both;
+}
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.tz-hero h1 {
+  font-size: 28px; font-weight: 800; margin: 0 0 6px;
+  color: #1f2937; letter-spacing: -0.5px;
+}
+.tz-hero h1 em {
+  font-style: normal;
+  background: linear-gradient(90deg, #4a8b3a, #f3b800);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.tz-hero p { margin: 0; color: #6b7280; font-size: 14px; max-width: 760px; }
+
+/* ============ ANA GRID ============ */
+.tz-grid {
+  max-width: 1320px; margin: 0 auto 30px; padding: 14px 22px;
+  display: grid; grid-template-columns: minmax(0, 1fr) 380px;
+  gap: 18px;
+}
+@media (max-width: 1024px) { .tz-grid { grid-template-columns: 1fr; } }
+
+/* ============ CARD ============ */
+.tz-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 8px 24px -12px rgba(47,90,37,0.12);
+  overflow: hidden;
+  animation: fadeUp 0.7s 0.2s cubic-bezier(.22,1,.36,1) both;
+}
+.tz-card-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px; border-bottom: 1px solid #f1f3f5;
+  background: linear-gradient(180deg, #fafbfc, #fff);
+}
+.tz-card-title {
+  font-size: 14px; font-weight: 700; color: #1f2937;
+  display: flex; align-items: center; gap: 8px;
+}
+.tz-card-title .ic {
+  width: 28px; height: 28px; border-radius: 8px;
+  background: linear-gradient(135deg, #4a8b3a, #2f5a25); color: #fff;
+  display: inline-flex; align-items: center; justify-content: center; font-size: 14px;
+}
+.tz-card-sub { font-size: 11px; color: #9ca3af; font-weight: 500; }
+.tz-card-body { padding: 16px 18px; }
+
+/* ============ HARITA ============ */
+.tz-map-wrap { position: relative; }
+#tz-map {
+  width: 100%; height: 540px;
+  border-bottom: 1px solid #f1f3f5;
+}
+.leaflet-container { z-index: 1; cursor: crosshair; font-family: 'Inter', sans-serif; }
+.tz-map-overlay {
+  position: absolute; top: 12px; right: 12px; z-index: 1000;
+  display: flex; gap: 6px;
+  background: rgba(255,255,255,0.92); backdrop-filter: blur(10px);
+  padding: 5px; border-radius: 10px;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+  border: 1px solid rgba(255,255,255,0.6);
+}
+.tz-map-overlay button {
+  border: none; background: transparent; padding: 6px 12px;
+  font-size: 12px; font-weight: 600; cursor: pointer; border-radius: 7px;
+  color: #4b5563; transition: all 0.2s ease;
+}
+.tz-map-overlay button.active {
+  background: linear-gradient(135deg, #4a8b3a, #3d7530); color: #fff;
+  box-shadow: 0 2px 6px rgba(74,139,58,0.4);
+}
+.tz-map-overlay button:not(.active):hover { background: #f0f7ec; color: #2f5a25; }
+
+/* ============ TOOLBAR ============ */
+.tz-toolbar {
+  padding: 14px 18px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+  background: #fafbfc; border-top: 1px solid #f1f3f5;
+}
+.tz-field {
+  display: flex; flex-direction: column; gap: 4px;
+}
+.tz-field label {
+  font-size: 11px; font-weight: 600; color: #6b7280;
+  text-transform: uppercase; letter-spacing: 0.4px;
+}
+.tz-input {
+  width: 160px; padding: 9px 12px; border: 1px solid #d1d5db;
+  border-radius: 8px; font-size: 13px; font-family: 'JetBrains Mono', monospace;
+  outline: none; transition: all 0.2s ease; background: #fff;
+}
+.tz-input:focus {
+  border-color: #4a8b3a;
+  box-shadow: 0 0 0 4px rgba(74,139,58,0.12);
+}
+.tz-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 9px 14px; border-radius: 8px; cursor: pointer;
+  font-size: 13px; font-weight: 600; font-family: inherit;
+  border: 1px solid #d1d5db; background: #fff; color: #374151;
+  transition: all 0.2s ease;
+}
+.tz-btn:hover { background: #f9fafb; border-color: #9ca3af; transform: translateY(-1px); }
+.tz-btn:active { transform: translateY(0); }
+.tz-btn-primary {
+  background: linear-gradient(135deg, #4a8b3a, #3d7530); color: #fff;
+  border-color: transparent;
+  box-shadow: 0 2px 8px rgba(74,139,58,0.3);
+}
+.tz-btn-primary:hover {
+  background: linear-gradient(135deg, #3d7530, #2f5a25);
+  box-shadow: 0 4px 12px rgba(74,139,58,0.4);
+}
+.tz-btn-ghost { background: transparent; border-color: #e5e7eb; color: #6b7280; }
+.tz-btn-ghost:hover { background: #fff5f5; border-color: #d9534f; color: #d9534f; }
+.tz-btn .ic { font-size: 14px; line-height: 1; }
+.tz-spacer { flex: 1; min-width: 8px; }
+
+/* ============ KOORDİNAT BİLGİSİ ============ */
+.tz-coord-info {
+  padding: 14px 18px;
+  border-top: 1px solid #f1f3f5;
+  background: linear-gradient(180deg, #f0f7ec, #fafbfc);
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+}
+.tz-coord-info.hidden { display: none; }
+.tz-info-item { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.tz-info-label {
+  font-size: 10px; font-weight: 700; color: #4a8b3a;
+  text-transform: uppercase; letter-spacing: 0.6px;
+}
+.tz-info-value {
+  font-size: 13px; color: #1f2937; font-weight: 500;
+  word-break: break-word;
+}
+.tz-info-value.mono { font-family: 'JetBrains Mono', monospace; font-weight: 600; }
+
+/* ============ IP PANEL ============ */
+.tz-ip-card { animation-delay: 0.3s; }
+.tz-ip-hero {
+  padding: 18px; background: linear-gradient(135deg, #2f5a25, #4a8b3a);
+  color: #fff; position: relative; overflow: hidden;
+}
+.tz-ip-hero::before {
+  content: ''; position: absolute; inset: 0;
+  background-image:
+    radial-gradient(circle at 20% 30%, rgba(255,226,122,0.15), transparent 40%),
+    radial-gradient(circle at 80% 70%, rgba(110,231,183,0.12), transparent 40%);
+  pointer-events: none;
+}
+.tz-ip-label {
+  font-size: 11px; font-weight: 600; opacity: 0.85;
+  text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 4px;
+  position: relative;
+}
+.tz-ip-value {
+  font-family: 'JetBrains Mono', monospace; font-size: 18px; font-weight: 700;
+  word-break: break-all; position: relative;
+}
+.tz-ip-loc {
+  margin-top: 8px; font-size: 13px; opacity: 0.95;
+  display: flex; align-items: center; gap: 6px; position: relative;
+}
+.tz-ip-flag {
+  width: 20px; height: 14px; background: #fff; border-radius: 2px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; color: #2f5a25;
+}
+
+.tz-detail-list { padding: 8px 0; }
+.tz-detail-row {
+  display: flex; justify-content: space-between; gap: 10px;
+  padding: 10px 18px; border-bottom: 1px solid #f5f6f7;
+  font-size: 13px;
+  transition: background 0.15s ease;
+}
+.tz-detail-row:hover { background: #fafbfc; }
+.tz-detail-row:last-child { border-bottom: none; }
+.tz-detail-key {
+  color: #6b7280; font-weight: 500; flex-shrink: 0;
+  display: flex; align-items: center; gap: 7px;
+}
+.tz-detail-key .ic {
+  width: 22px; height: 22px; border-radius: 6px;
+  background: #f0f7ec; color: #4a8b3a;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 11px;
+}
+.tz-detail-val {
+  color: #1f2937; font-weight: 600; text-align: right;
+  word-break: break-word; min-width: 0;
+}
+.tz-detail-val.mono { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+.tz-detail-val.muted { color: #9ca3af; font-weight: 500; }
+
+.tz-loader {
+  padding: 60px 20px; text-align: center; color: #9ca3af; font-size: 13px;
+}
+.tz-spin {
+  display: inline-block; width: 22px; height: 22px;
+  border: 2.5px solid #e5e7eb; border-top-color: #4a8b3a;
+  border-radius: 50%; animation: spin 0.8s linear infinite;
+  margin-bottom: 10px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.tz-section-divider {
+  padding: 10px 18px 6px; font-size: 10px; font-weight: 700;
+  color: #9ca3af; text-transform: uppercase; letter-spacing: 0.8px;
+  background: #fafbfc; border-top: 1px solid #f1f3f5;
+}
+
+/* ============ KAYITLI ============ */
+.tz-saved-section { padding: 14px 18px; border-top: 1px solid #f1f3f5; }
+.tz-saved-section h4 {
+  margin: 0 0 10px; font-size: 12px; font-weight: 700; color: #6b7280;
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+.tz-saved-empty {
+  padding: 14px; text-align: center; font-size: 12px;
+  color: #9ca3af; background: #fafbfc; border: 1px dashed #e5e7eb; border-radius: 8px;
+}
+.tz-saved-item {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; padding: 10px 12px; border: 1px solid #e5e7eb;
+  border-radius: 8px; margin-bottom: 6px; background: #fafbfc;
+  transition: all 0.2s ease;
+}
+.tz-saved-item:hover { background: #f0f7ec; border-color: #bbd9a9; }
+.tz-saved-item .nm { font-weight: 600; font-size: 13px; color: #1f2937; }
+.tz-saved-item .co { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #6b7280; }
+.tz-saved-item .ac { display: flex; gap: 4px; }
+.tz-mini-btn {
+  border: none; background: #fff; border: 1px solid #e5e7eb;
+  padding: 5px 9px; border-radius: 6px; font-size: 11px; cursor: pointer;
+  color: #4b5563; transition: all 0.2s ease; font-weight: 600; font-family: inherit;
+}
+.tz-mini-btn:hover { background: #4a8b3a; color: #fff; border-color: #4a8b3a; }
+.tz-mini-btn.del:hover { background: #d9534f; border-color: #d9534f; }
+
+/* ============ TOAST ============ */
+.tz-toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translate(-50%, 20px);
+  background: #1f2937; color: #fff; padding: 10px 18px;
+  border-radius: 10px; font-size: 13px; font-weight: 500;
+  z-index: 10000; box-shadow: 0 12px 28px rgba(0,0,0,0.25);
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.tz-toast.show { opacity: 1; transform: translate(-50%, 0); }
+.tz-toast.success { background: linear-gradient(135deg, #4a8b3a, #2f5a25); }
+.tz-toast.error   { background: linear-gradient(135deg, #d9534f, #b03d3a); }
+
+/* ============ CREDIT BADGE (sol alt) ============ */
+.tz-credit {
+  position: fixed; bottom: 16px; left: 16px;
+  background: rgba(255,255,255,0.92); backdrop-filter: blur(10px);
+  border: 1px solid rgba(74,139,58,0.2);
+  padding: 8px 14px; border-radius: 999px;
+  font-size: 12px; font-weight: 600; color: #2f5a25;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+  z-index: 100;
+  animation: fadeUp 0.8s 0.6s cubic-bezier(.22,1,.36,1) both;
+  display: flex; align-items: center; gap: 6px;
+  transition: all 0.25s ease;
+}
+.tz-credit:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(74,139,58,0.25);
+  border-color: rgba(74,139,58,0.4);
+}
+.tz-credit .rose { font-size: 14px; animation: wiggle 3s ease-in-out infinite; }
+@keyframes wiggle {
+  0%, 100% { transform: rotate(-6deg); }
+  50%      { transform: rotate(8deg); }
+}
+
+/* ============ SCROLLBAR ============ */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: #f1f3f5; }
+::-webkit-scrollbar-thumb {
+  background: #bbd9a9; border-radius: 10px; border: 2px solid #f1f3f5;
+}
+::-webkit-scrollbar-thumb:hover { background: #4a8b3a; }
+
+/* ============ Marker pulse ============ */
+.tz-marker-pulse {
+  width: 18px; height: 18px;
+  background: #d9534f; border: 3px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 0 rgba(217,83,79,0.6), 0 3px 10px rgba(0,0,0,0.3);
+  animation: markerPulse 1.6s ease-out infinite;
+}
+@keyframes markerPulse {
+  0%   { box-shadow: 0 0 0 0   rgba(217,83,79,0.55), 0 3px 10px rgba(0,0,0,0.3); }
+  100% { box-shadow: 0 0 0 18px rgba(217,83,79,0),    0 3px 10px rgba(0,0,0,0.3); }
+}
+  /* Leaflet popup style */
+.leaflet-popup-content-wrapper {
+  border-radius: 10px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+}
+.leaflet-popup-content {
+  margin: 10px 14px;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+}
+.leaflet-popup-content strong { color: #2f5a25; }
+</style>
+</head>
+<body>
+
+<!-- ============ HEADER ============ -->
+<header class="tz-header">
+  <div class="tz-header-inner">
+    <div class="tz-logo">
+      <span class="tz-logo-mark">◉</span>
+      <div>
+        <div>Geo<span>Locate</span></div>
+        <div class="tz-tagline">Koordinat &amp; IP Analiz Aracı</div>
+      </div>
+    </div>
+    <div class="tz-status-pill">
+      <span class="tz-dot"></span>
+      <span>Canlı Bağlantı</span>
+    </div>
+  </div>
+</header>
+
+<!-- ============ HERO ============ -->
+<section class="tz-hero">
+  <h1>Konum &amp; Ağ <em>İstihbaratı</em></h1>
+  <p>Haritadan koordinat seçin veya manuel girin — adres, IP bilgisi, ISP, ağ ve coğrafi detayları gerçek zamanlı sorgulayın.</p>
+</section>
+
+<!-- ============ MAIN GRID ============ -->
+<main class="tz-grid">
+
+  <!-- =========== SOL: HARITA =========== -->
+  <section class="tz-card">
+    <div class="tz-card-head">
+      <div class="tz-card-title"><span class="ic">⌖</span> Harita &amp; Koordinat</div>
+      <div class="tz-card-sub">Haritaya tıklayarak nokta seçin</div>
+    </div>
+
+    <div class="tz-map-wrap">
+      <div id="tz-map"></div>
+      <div class="tz-map-overlay">
+        <button data-layer="osm" class="active">Harita</button>
+        <button data-layer="sat">Uydu</button>
+        <button data-layer="ter">Topoğrafya</button>
+      </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="tz-toolbar">
+      <div class="tz-field">
+        <label>Enlem (Latitude)</label>
+        <input id="tz-lat" class="tz-input" type="text">
+      </div>
+      <div class="tz-field">
+        <label>Boylam (Longitude)</label>
+        <input id="tz-lng" class="tz-input" type="text">
+      </div>
+      <button class="tz-btn tz-btn-primary" id="tz-search-btn">
+        <span class="ic">🔍</span> Konumu Bul
+      </button>
+      <button class="tz-btn" id="tz-save-btn">
+        <span class="ic">＋</span> Kaydet
+      </button>
+      <button class="tz-btn" id="tz-mylocation-btn">
+        <span class="ic">⊙</span> Konumum
+      </button>
+      <div class="tz-spacer"></div>
+      <button class="tz-btn tz-btn-ghost" id="tz-clear-btn">
+        <span class="ic">✕</span> Temizle
+      </button>
+    </div>
+    <!-- Koordinat detayları -->
+    <div class="tz-coord-info hidden" id="tz-coord-info">
+      <div class="tz-info-item">
+        <div class="tz-info-label">Enlem</div>
+        <div class="tz-info-value mono" id="ci-lat">—</div>
+      </div>
+      <div class="tz-info-item">
+        <div class="tz-info-label">Boylam</div>
+        <div class="tz-info-value mono" id="ci-lng">—</div>
+      </div>
+      <div class="tz-info-item">
+        <div class="tz-info-label">Adres</div>
+        <div class="tz-info-value" id="ci-addr">Aranıyor…</div>
+      </div>
+      <div class="tz-info-item">
+        <div class="tz-info-label">Ülke / Şehir</div>
+        <div class="tz-info-value" id="ci-country">—</div>
+      </div>
+      <div class="tz-info-item">
+        <div class="tz-info-label">Posta Kodu</div>
+        <div class="tz-info-value" id="ci-postal">—</div>
+      </div>
+      <div class="tz-info-item">
+        <div class="tz-info-label">DMS Format</div>
+        <div class="tz-info-value mono" id="ci-dms">—</div>
+      </div>
+    </div>
+
+    <!-- Kayıtlı koordinatlar -->
+    <div class="tz-saved-section">
+      <h4>Kayıtlı Koordinatlarım</h4>
+      <div id="tz-saved-list"></div>
+    </div>
+  </section>
+
+  <!-- =========== SAĞ: IP PANEL =========== -->
+  <aside class="tz-card tz-ip-card">
+    <div class="tz-ip-hero">
+      <div class="tz-ip-label" id="ip-hero-label">Sizin IP Adresiniz</div>
+      <div class="tz-ip-value" id="ip-address">Sorgulanıyor…</div>
+      <div class="tz-ip-loc" id="ip-loc">
+        <span class="tz-ip-flag" id="ip-flag">--</span>
+        <span id="ip-place">—</span>
+      </div>
+    </div>
+
+    <!-- IP Sorgu Kutusu -->
+    <div style="padding: 14px 18px; border-bottom: 1px solid #f1f3f5; background: #fafbfc;">
+      <label style="font-size: 11px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.4px; display: block; margin-bottom: 6px;">IP Sorgula</label>
+      <div style="display: flex; gap: 6px;">
+        <input id="ip-query-input" type="text"
+          style="flex: 1; padding: 9px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 13px; font-family: 'JetBrains Mono', monospace; outline: none; background: #fff;">
+        <button class="tz-btn tz-btn-primary" id="ip-query-btn">
+          <span class="ic">🔍</span> Sorgula
+        </button>
+        <button class="tz-btn" id="ip-self-btn" title="Kendi IP'mi göster">
+          <span class="ic">⊙</span>
+        </button>
+      </div>
+    </div>
+
+    <div id="ip-content">
+      <div class="tz-loader">
+        <div class="tz-spin"></div>
+        <div>IP &amp; ağ bilgileri sorgulanıyor…</div>
+      </div>
+    </div>
+
+    <div style="padding: 12px 18px; border-top: 1px solid #f1f3f5; background: #fafbfc;">
+      <button class="tz-btn" style="width:100%; justify-content:center;" id="ip-refresh">
+        <span class="ic">⟲</span> Bilgileri Yenile
+      </button>
+    </div>
+  </aside>
+
+</main>
+
+<!-- ============ TOAST ============ -->
+<div class="tz-toast" id="toast">Mesaj</div>
+<!-- ============ CREDIT (sol alt) ============ -->
+<div class="tz-credit" title="Yapımcı">
+  <span class="rose">🌹</span>
+  <span>by lenstedreal</span>
+</div>
+
+<!-- ============ LEAFLET JS ============ -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+<script>
+/* ============================================================
+   GeoLocate — Tüm uygulama mantığı
+   ============================================================ */
+(function () {
+  /* -------- HARITA -------- */
+  const map = L.map('tz-map', { zoomControl: true, attributionControl: true })
+                .setView([39.0, 35.0], 6);
+
+  const layers = {
+    osm: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19, attribution: '© OpenStreetMap'
+    }),
+    sat: L.tileLayer(
+      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      { maxZoom: 19, attribution: 'Tiles © Esri' }
+    ),
+    ter: L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+      maxZoom: 17, attribution: '© OpenTopoMap'
+    }),
+  };
+  let activeLayer = layers.osm.addTo(map);
+
+  document.querySelectorAll('.tz-map-overlay button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tz-map-overlay button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      map.removeLayer(activeLayer);
+      activeLayer = layers[btn.dataset.layer].addTo(map);
+    });
+  });
+
+  const markerIcon = L.divIcon({
+    className: 'tz-marker',
+    html: '<div class="tz-marker-pulse"></div>',
+    iconSize: [18, 18], iconAnchor: [9, 9]
+  });
+
+  let marker = null;
+  let currentCoord = null;
+
+  /* -------- HELPERS -------- */
+  const $ = id => document.getElementById(id);
+  const fmt = n => Number(n).toFixed(6);
+
+  function showToast(msg, type = '') {
+    const t = $('toast');
+    t.textContent = msg;
+    t.className = 'tz-toast show ' + type;
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(() => t.className = 'tz-toast', 2400);
+  }
+
+  function toDMS(deg, isLat) {
+    const dir = isLat ? (deg >= 0 ? 'K' : 'G') : (deg >= 0 ? 'D' : 'B');
+    deg = Math.abs(deg);
+    const d = Math.floor(deg);
+    const mFloat = (deg - d) * 60;
+    const m = Math.floor(mFloat);
+    const s = ((mFloat - m) * 60).toFixed(2);
+    return `${d}° ${m}' ${s}" ${dir}`;
+      }
+
+  /* -------- KOORDİNAT SEÇİMİ -------- */
+  function setCoord(lat, lng, fly) {
+    currentCoord = { lat: +lat, lng: +lng };
+    if (marker) {
+      marker.setLatLng([lat, lng]);
+    } else {
+      marker = L.marker([lat, lng], { icon: markerIcon, draggable: true }).addTo(map);
+      marker.on('drag', e => {
+        const ll = e.target.getLatLng();
+        currentCoord = { lat: ll.lat, lng: ll.lng };
+        renderCoordInfo();
+      });
+      marker.on('dragend', () => reverseGeocode(currentCoord.lat, currentCoord.lng));
+    }
+    if (fly) map.flyTo([lat, lng], Math.max(map.getZoom(), 13), { duration: 0.9 });
+    renderCoordInfo();
+    reverseGeocode(lat, lng);
+  }
+
+  function clearCoord() {
+    if (marker) { map.removeLayer(marker); marker = null; }
+    currentCoord = null;
+    $('tz-lat').value = '';
+    $('tz-lng').value = '';
+    $('tz-coord-info').classList.add('hidden');
+  }
+
+  function renderCoordInfo() {
+    if (!currentCoord) return;
+    $('tz-coord-info').classList.remove('hidden');
+    $('ci-lat').textContent = fmt(currentCoord.lat);
+    $('ci-lng').textContent = fmt(currentCoord.lng);
+    $('ci-dms').textContent =
+      `${toDMS(currentCoord.lat, true)}  /  ${toDMS(currentCoord.lng, false)}`;
+    $('tz-lat').value = fmt(currentCoord.lat);
+    $('tz-lng').value = fmt(currentCoord.lng);
+  }
+
+  /* -------- REVERSE GEOCODE (Nominatim) -------- */
+  async function reverseGeocode(lat, lng) {
+    $('ci-addr').textContent = 'Aranıyor…';
+    $('ci-country').textContent = '—';
+    $('ci-postal').textContent = '—';
+    try {
+      const r = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&accept-language=tr`,
+        { headers: { 'Accept': 'application/json' } }
+      );
+      const d = await r.json();
+      $('ci-addr').textContent = d.display_name || '—';
+      const a = d.address || {};
+      const city = a.province || a.state || a.city || a.town || a.village || '—';
+      const country = a.country || '—';
+      $('ci-country').textContent = `${country} / ${city}`;
+      $('ci-postal').textContent = a.postcode || '—';
+      if (marker) {
+        marker.bindPopup(
+          `<strong>${city}</strong><br>${d.display_name || ''}`
+        );
+      }
+    } catch (e) {
+      $('ci-addr').textContent = 'Adres alınamadı.';
+    }
+  }
+    /* -------- HARİTA TIKLAMA -------- */
+  map.on('click', e => setCoord(e.latlng.lat, e.latlng.lng, false));
+
+  /* -------- BUTONLAR -------- */
+  $('tz-search-btn').addEventListener('click', () => {
+    const lat = parseFloat(($('tz-lat').value || '').replace(',', '.'));
+    const lng = parseFloat(($('tz-lng').value || '').replace(',', '.'));
+    if (isNaN(lat) || isNaN(lng)) { showToast('Geçerli enlem ve boylam giriniz.', 'error'); return; }
+    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+      showToast('Koordinat sınırları dışında.', 'error'); return;
+    }
+    setCoord(lat, lng, true);
+    showToast('Konum haritada gösterildi.', 'success');
+  });
+
+  $('tz-clear-btn').addEventListener('click', () => { clearCoord(); showToast('Temizlendi.'); });
+
+  $('tz-mylocation-btn').addEventListener('click', () => {
+    if (!navigator.geolocation) { showToast('Tarayıcı konum desteklemiyor.', 'error'); return; }
+    showToast('Konumunuz alınıyor…');
+    navigator.geolocation.getCurrentPosition(
+      p => { setCoord(p.coords.latitude, p.coords.longitude, true); showToast('Konumunuz bulundu.', 'success'); },
+      () => showToast('Konum izni alınamadı.', 'error'),
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  });
+
+  /* -------- KAYITLI KOORDİNATLAR -------- */
+  let saved = JSON.parse(localStorage.getItem('geo_saved') || '[]');
+
+  function renderSaved() {
+    const wrap = $('tz-saved-list');
+    if (!saved.length) {
+      wrap.innerHTML = '<div class="tz-saved-empty">Henüz kayıtlı koordinat yok. Bir nokta seçip “Kaydet” butonuna tıklayın.</div>';
+      return;
+    }
+    wrap.innerHTML = saved.map(s => `
+      <div class="tz-saved-item">
+        <div style="min-width:0;">
+          <div class="nm">${esc(s.name)}</div>
+          <div class="co">${fmt(s.lat)}, ${fmt(s.lng)}</div>
+        </div>
+        <div class="ac">
+          <button class="tz-mini-btn" data-go="${s.id}">Göster</button>
+          <button class="tz-mini-btn del" data-del="${s.id}">Sil</button>
+        </div>
+      </div>
+    `).join('');
+    wrap.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => {
+      const it = saved.find(x => x.id == b.dataset.go);
+      if (it) setCoord(it.lat, it.lng, true);
+    }));
+    wrap.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', () => {
+      saved = saved.filter(x => x.id != b.dataset.del);
+      localStorage.setItem('geo_saved', JSON.stringify(saved));
+      renderSaved(); showToast('Silindi.');
+    }));
+  }
+
+  $('tz-save-btn').addEventListener('click', () => {
+    if (!currentCoord) { showToast('Önce haritadan bir nokta seçin.', 'error'); return; }
+    const name = prompt('Bu koordinat için bir isim verin:', 'Yer ' + (saved.length + 1));
+    if (!name) return;
+    saved.push({ id: Date.now(), name, lat: currentCoord.lat, lng: currentCoord.lng });
+    localStorage.setItem('geo_saved', JSON.stringify(saved));
+    renderSaved();
+    showToast('Koordinat kaydedildi.', 'success');
+  });
+
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, m => (
+      { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]
+    ));
+  }
+      /* ============ IP API FALLBACK ZİNCİRİ ============ */
+  // Adapter pattern: her API'den gelen veriyi ortak formata çevirir.
+  const ipProviders = [
+    {
+      name: 'ipapi.co',
+      url:  ip => ip ? `https://ipapi.co/${encodeURIComponent(ip)}/json/` : 'https://ipapi.co/json/',
+      parse: d => {
+        if (d.error) throw new Error(d.reason || 'ipapi.co hata');
+        return {
+          ip: d.ip,
+          version: d.version,
+          city: d.city,
+          region: d.region,
+          country: d.country_name,
+          country_code: d.country_code,
+          continent: d.continent_code,
+          postal: d.postal,
+          latitude: d.latitude,
+          longitude: d.longitude,
+          timezone: d.timezone,
+          utc_offset: d.utc_offset,
+          calling_code: d.country_calling_code ? d.country_calling_code.replace('+','') : null,
+          asn: d.asn,
+          org: d.org,
+          isp: d.org,
+          currency: d.currency
+        };
+      }
+    },
+    {
+      name: 'freeipapi.com',
+      url:  ip => ip ? `https://free.freeipapi.com/api/json/${encodeURIComponent(ip)}` : 'https://free.freeipapi.com/api/json',
+      parse: d => {
+        if (!d.ipAddress) throw new Error('freeipapi.com cevap vermedi');
+        return {
+          ip: d.ipAddress,
+          version: d.ipVersion === 6 ? 'IPv6' : 'IPv4',
+          city: d.cityName,
+          region: d.regionName,
+          country: d.countryName,
+          country_code: d.countryCode,
+          continent: d.continent,
+          postal: d.zipCode,
+          latitude: d.latitude,
+          longitude: d.longitude,
+          timezone: Array.isArray(d.timeZones) ? d.timeZones[0] : d.timeZone,
+          utc_offset: null,
+          calling_code: null,
+          asn: null,
+          org: null,
+          isp: null,
+          currency: null
+        };
+      }
+    },
+    {
+      name: 'ipwho.is',
+      url:  ip => ip ? `https://ipwho.is/${encodeURIComponent(ip)}?lang=tr` : 'https://ipwho.is/?lang=tr',
+      parse: d => {
+        if (d.success === false) throw new Error(d.message || 'ipwho.is hata');
+        return {
+          ip: d.ip,
+          version: (d.type || '').toUpperCase(),
+          city: d.city,
+          region: d.region,
+          country: d.country,
+          country_code: d.country_code,
+          continent: d.continent,
+          postal: d.postal,
+          latitude: d.latitude,
+          longitude: d.longitude,
+          timezone: d.timezone && d.timezone.id,
+          utc_offset: d.timezone && d.timezone.utc,
+          calling_code: d.calling_code,
+          asn: d.connection && d.connection.asn,
+          org: d.connection && d.connection.org,
+          isp: d.connection && d.connection.isp,
+          domain: d.connection && d.connection.domain,
+          currency: d.currency && d.currency.code
+        };
+      }
+    }
+  ];
+        async function tryProvider(p, ip) {
+    const ctrl = new AbortController();
+    const tid = setTimeout(() => ctrl.abort(), 8000);
+    try {
+      const url = (typeof p.url === 'function') ? p.url(ip) : p.url;
+      const r = await fetch(url, { signal: ctrl.signal });
+      clearTimeout(tid);
+      if (!r.ok) throw new Error(p.name + ' HTTP ' + r.status);
+      const j = await r.json();
+      return p.parse(j);
+    } finally {
+      clearTimeout(tid);
+    }
+  }
+
+  function row(icon, key, val, mono) {
+    const v = (val === null || val === undefined || val === '' || val === 'null') ? '—' : val;
+    const muted = (v === '—') ? ' muted' : '';
+    return `
+      <div class="tz-detail-row">
+        <div class="tz-detail-key"><span class="ic">${icon}</span>${key}</div>
+        <div class="tz-detail-val${mono ? ' mono' : ''}${muted}">${esc(String(v))}</div>
+      </div>`;
+  }
+
+  function brandFromISP(ispRaw) {
+    if (!ispRaw) return null;
+    const u = String(ispRaw).toUpperCase();
+    if (/TURKCELL|SUPERONLINE/.test(u))           return 'Turkcell / Superonline';
+    if (/VODAFONE/.test(u))                       return 'Vodafone Türkiye';
+    if (/TURK ?TELEKOM|TTNET/.test(u))            return 'Türk Telekom (TTNet)';
+    if (/TURKSAT/.test(u))                        return 'Türksat Kablo';
+    if (/MILLENICOM/.test(u))                     return 'Millenicom';
+    if (/ASELSAN|TURK ?NET/.test(u))              return 'TurkNet';
+    if (/D-SMART|SMILE/.test(u))                  return 'D-Smart Net';
+    return null;
+  }
+
+  function flagEmoji(code) {
+    if (!code || code.length !== 2) return '';
+    const cc = code.toUpperCase();
+    return String.fromCodePoint(...[...cc].map(c => 127397 + c.charCodeAt()));
+  }
+
+  async function loadIPInfo(queryIP) {
+    $('ip-hero-label').textContent = queryIP ? 'Sorgulanan IP' : 'Sizin IP Adresiniz';
+    $('ip-content').innerHTML = `
+      <div class="tz-loader">
+        <div class="tz-spin"></div>
+        <div>IP &amp; ağ bilgileri sorgulanıyor…</div>
+      </div>`;
+    $('ip-address').textContent = 'Sorgulanıyor…';
+    $('ip-place').textContent = '—';
+    $('ip-flag').textContent = '--';
+
+    let data = null, lastErr = null, usedProvider = null;
+    for (const p of ipProviders) {
+      try {
+        data = await tryProvider(p, queryIP);
+        usedProvider = p.name;
+        if (data && data.ip) break;
+      } catch (e) {
+        lastErr = e;
+        console.warn('[IP]', p.name, 'başarısız:', e.message);
+      }
+    }
+        // Hiçbiri çalışmadıysa en azından IP'yi almaya çalış
+    if (!data && !queryIP) {
+      try {
+        const r = await fetch('https://api.ipify.org?format=json');
+        const j = await r.json();
+        if (j.ip) {
+          data = { ip: j.ip, version: j.ip.includes(':') ? 'IPv6' : 'IPv4' };
+          usedProvider = 'ipify (fallback)';
+        }
+      } catch(_) {}
+    }
+
+    if (!data) {
+      $('ip-content').innerHTML = `
+        <div class="tz-error-box">
+          <strong>IP bilgileri alınamadı.</strong><br>
+          Tüm servisler yanıt vermedi. Bunun olası sebepleri:<br>
+          • Dosyayı <code>file://</code> ile açıyor olabilirsiniz (CORS engeli).<br>
+          • Reklam/izleme engelleyici eklentiniz IP servislerini blokluyor olabilir.<br>
+          • İnternet bağlantısı sorunu.<br>
+          <small style="display:block; margin-top:6px; color:#7f1d1d;">${esc(lastErr ? lastErr.message : '')}</small>
+        </div>`;
+      $('ip-address').textContent = 'Bilgi yok';
+      $('ip-place').textContent   = '—';
+      return;
+    }
+
+    // HERO
+    $('ip-address').textContent = data.ip || '—';
+    $('ip-place').textContent = `${data.city || '—'}${data.country ? ', ' + data.country : ''}`;
+    $('ip-flag').textContent = (data.country_code || '--').toUpperCase();
+
+    // Kendi IP'mizse sorgu kutusunu da dolduralım
+    if (!queryIP && data.ip) {
+      $('ip-query-input').value = data.ip;
+    }
+
+    // Yerel saat
+    let localTime = '—';
+    if (data.timezone) {
+      try {
+        localTime = new Date().toLocaleString('tr-TR', {
+          timeZone: data.timezone, dateStyle: 'medium', timeStyle: 'short'
+        });
+      } catch(_) {}
+    }
+
+    const brand = brandFromISP(data.isp || data.org);
+    const ipType = data.version
+      ? (String(data.version).toLowerCase().includes('6') ? 'IPv6' : 'IPv4')
+      : (data.ip && data.ip.includes(':') ? 'IPv6' : 'IPv4');
+
+    const flag = flagEmoji(data.country_code);
+
+    const html = `
+      <div class="tz-section-divider">Coğrafi Bilgiler</div>
+      ${row('🌐', 'Ülke',          (data.country || '—') + (flag ? ' ' + flag : ''))}
+      ${row('🏙', 'Şehir',          data.city)}
+      ${row('🧭', 'Bölge / Eyalet', data.region)}
+      ${row('📮', 'Posta Kodu',    data.postal)}
+      ${row('☎', 'Telefon Kodu',   data.calling_code ? '+' + data.calling_code : '—')}
+      ${row('⛰', 'Kıta',           data.continent)}
+
+      <div class="tz-section-divider">Konum Detayları</div>
+      ${row('◐', 'Enlem',          data.latitude  != null ? fmt(data.latitude)  : '—', true)}
+      ${row('◑', 'Boylam',         data.longitude != null ? fmt(data.longitude) : '—', true)}
+      ${row('🕒', 'Saat Dilimi',   data.timezone ? `${data.timezone}${data.utc_offset ? ' (' + data.utc_offset + ')' : ''}` : '—')}
+      ${row('⏰', 'Yerel Zaman',   localTime)}
+
+      <div class="tz-section-divider">Ağ &amp; ISP</div>
+      ${row('📡', 'Operatör',      brand || '—')}
+      ${row('🏢', 'ISP',           data.isp)}
+      ${row('🏛', 'Organizasyon',  data.org)}
+      ${row('🔢', 'ASN',           data.asn ? (String(data.asn).startsWith('AS') ? data.asn : 'AS' + data.asn) : '—', true)}
+      ${row('🛰', 'Alan Adı',      data.domain)}
+      ${row('🔌', 'Bağlantı Tipi', ipType)}
+
+      <div class="tz-section-divider">Adres Bilgisi</div>
+      ${row('🖧', 'IP Adresi',     data.ip, true)}
+      ${row('🧩', 'IP Versiyonu',  ipType)}
+      ${row('💱', 'Para Birimi',   data.currency)}
+
+      <div style="padding: 8px 18px 14px; font-size: 10px; color: #9ca3af; text-align: right;">
+        Kaynak: ${esc(usedProvider)}
+      </div>
+    `;
+    $('ip-content').innerHTML = html;
+        // İlk yüklemede haritada da göster
+    if (!marker && data.latitude && data.longitude) {
+      setCoord(data.latitude, data.longitude, true);
+    }
+  }
+
+  $('ip-refresh').addEventListener('click', () => { loadIPInfo(); showToast('Yenileniyor…'); });
+
+  /* -------- IP SORGU -------- */
+  function isValidIP(s) {
+    if (!s) return false;
+    const v4 = /^(25[0-5]|2[0-4]\d|[01]?\d?\d)(\.(25[0-5]|2[0-4]\d|[01]?\d?\d)){3}$/;
+    const v6 = /^([0-9a-fA-F]{1,4}:){1,7}[0-9a-fA-F]{0,4}(:[0-9a-fA-F]{1,4}){0,6}$|^::1$|^::$/;
+    return v4.test(s) || v6.test(s) || /^[0-9a-fA-F:]+$/.test(s) && s.includes(':');
+  }
+  $('ip-query-btn').addEventListener('click', () => {
+    const ip = ($('ip-query-input').value || '').trim();
+    if (!ip) { showToast('Lütfen bir IP adresi girin.', 'error'); return; }
+    if (!isValidIP(ip)) { showToast('Geçerli bir IP adresi girin.', 'error'); return; }
+    loadIPInfo(ip);
+    showToast('IP sorgulanıyor…');
+  });
+  $('ip-query-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') $('ip-query-btn').click();
+  });
+  $('ip-self-btn').addEventListener('click', () => {
+    $('ip-query-input').value = '';
+    loadIPInfo();
+    showToast('Kendi IP bilgileriniz yükleniyor…');
+  });
+
+  /* ============ BAŞLANGIÇ ============ */
+  renderSaved();
+  loadIPInfo();
+})();
+</script>
+
+</body>
+</html>
+      
