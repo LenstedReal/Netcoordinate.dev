@@ -19,6 +19,7 @@
 
   /* ---------- intro log ---------- */
   function log(text) {
+    return; // intro texts removed on request; kept as a no-op so the calls stay harmless
     var el = document.createElement('div');
     el.textContent = '› ' + text;
     $('log').appendChild(el);
