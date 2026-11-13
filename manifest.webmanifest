@@ -1,0 +1,14 @@
+{
+  "name": "GeoLocate",
+  "short_name": "GeoLocate",
+  "description": "Koordinat bul, dönüştür, ölç ve paylaş. IP ve ağ bilgilerini incele.",
+  "lang": "tr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0a1020",
+  "theme_color": "#0a1020",
+  "icons": [
+    { "src": "assets/img/favicon.svg", "type": "image/svg+xml", "sizes": "any", "purpose": "any" }
+  ]
+}
