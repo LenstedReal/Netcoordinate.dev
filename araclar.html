@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Araçlar — GeoLocate</title>
-<meta name="description" content="Koordinat dönüştürücü (ondalık, DMS, DDM, UTM, geohash), iki nokta arası mesafe ve yön, toplu dönüştürme ve CSV dışa aktarma.">
+<title>Araçlar ve hız testi — GeoLocate</title>
+<meta name="description" content="İnternet hız testi (indirme, yükleme, ping), koordinat dönüştürücü (ondalık, DMS, DDM, UTM, geohash), iki nokta arası mesafe ve yön, toplu dönüştürme ve CSV dışa aktarma.">
 <meta name="theme-color" content="#0a1020">
 <meta property="og:title" content="Araçlar — GeoLocate">
 <meta property="og:description" content="Koordinat bul, dönüştür, ölç ve paylaş. IP ve ağ bilgilerini incele.">
@@ -30,6 +30,7 @@
       <a href="./">Harita</a>
       <a href="ip.html">IP Analizi</a>
       <a href="araclar.html" aria-current="page">Araçlar</a>
+      <a href="araclar.html#hiz">Hız testi</a>
       <a href="hakkinda.html">Hakkında</a>
     </nav>
     <div class="header-tools">
@@ -49,11 +50,39 @@
   <div class="wrap">
     <section class="page-head reveal">
       <span class="eyebrow">Araçlar</span>
-      <h1>Koordinatı <em>dönüştür, ölç.</em></h1>
-      <p>Her biçimi anlar: ondalık, derece-dakika-saniye, UTM, geohash ya da harita bağlantısı. Sonucu tek dokunuşla kopyala, iki nokta arasını ölç ya da yüzlerce satırı birden dönüştür.</p>
+      <h1>Hızını ölç, <em>koordinatı dönüştür.</em></h1>
+      <p>İnternet hızını ve gecikmeni ölç; koordinatları her biçimde anla: ondalık, derece-dakika-saniye, UTM, geohash ya da harita bağlantısı. İki nokta arasını ölç ya da yüzlerce satırı birden dönüştür.</p>
     </section>
 
     <div class="tools-grid">
+      <section class="card wide reveal" style="--i:0" aria-labelledby="speed-title" id="hiz">
+        <div class="card-head">
+          <h2 class="card-title" id="speed-title"><span class="ic" data-icon="bolt"></span>İnternet hız testi</h2>
+          <span class="card-sub" id="sp-op">Operatör belirleniyor…</span>
+        </div>
+        <div class="card-body speed">
+          <div class="sp-top">
+            <div class="sp-gauge" id="sp-gauge" role="img" aria-label="Anlık hız göstergesi">
+              <svg viewBox="0 0 200 112" aria-hidden="true">
+                <path class="sp-track" d="M10 102 A90 90 0 0 1 190 102" />
+                <path class="sp-arc" id="sp-arc" d="M10 102 A90 90 0 0 1 190 102" style="stroke-dasharray:283;stroke-dashoffset:283" />
+              </svg>
+              <div class="sp-read"><span class="sp-num" id="sp-num">0</span><span class="sp-unit">Mbps</span><span class="sp-phase" id="sp-phase">Hazır</span></div>
+            </div>
+            <div class="sp-stats">
+              <div class="sp-stat"><span class="k">İndirme</span><span class="v" id="sp-down">—</span><span class="u">Mbps</span></div>
+              <div class="sp-stat"><span class="k">Yükleme</span><span class="v" id="sp-up">—</span><span class="u">Mbps</span></div>
+              <div class="sp-stat"><span class="k">Ping</span><span class="v" id="sp-ping">—</span><span class="u">ms</span></div>
+              <div class="sp-stat"><span class="k">Dalgalanma</span><span class="v" id="sp-jit">—</span><span class="u">ms</span></div>
+            </div>
+          </div>
+          <div class="actions-row"><button class="btn btn-primary" type="button" id="sp-run">Testi başlat</button></div>
+          <div id="sp-verdict" aria-live="polite"></div>
+          <div id="sp-hist"></div>
+          <p class="sp-note">Ölçüm Cloudflare'ın sana en yakın sunucusuyla yapılır ve yaklaşık 20-60 MB veri kullanır; mobil veride kotana dikkat et. Sonuçlar yalnızca bu cihazda saklanır.</p>
+        </div>
+      </section>
+
       <section class="card reveal" style="--i:1" aria-labelledby="conv-title">
         <div class="card-head">
           <h2 class="card-title" id="conv-title"><span class="ic" data-icon="target"></span>Koordinat dönüştürücü</h2>
@@ -122,6 +151,7 @@
       <a href="./">Harita</a>
       <a href="ip.html">IP Analizi</a>
       <a href="araclar.html">Araçlar</a>
+      <a href="araclar.html#hiz">Hız testi</a>
       <a href="hakkinda.html">Hakkında ve gizlilik</a>
     </nav>
     <span>Harita verisi © OpenStreetMap katkıcıları</span>
@@ -132,5 +162,6 @@
 <script src="assets/js/core.js"></script>
 <script src="assets/js/geo.js"></script>
 <script src="assets/js/tools.js"></script>
+<script src="assets/js/speed.js"></script>
 </body>
 </html>

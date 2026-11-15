@@ -152,6 +152,7 @@
     $('a-gm').href = links.google;
     $('p-addr').textContent = 'Adres çözümleniyor…';
     reverse(lat, lng);
+    envInfo(lat, lng);
     history.replaceState(null, '', '#' + lat.toFixed(6) + ',' + lng.toFixed(6) + ',' + (opts.zoom || 16));
   }
 
@@ -171,6 +172,48 @@
         })
         .catch(function () { if (seq === revSeq) $('p-addr').textContent = 'Adres şu an alınamadı (koordinat doğru)'; });
     }, Math.max(0, 1100 - (Date.now() - revLast)));
+  }
+
+  /* ---------- weather, elevation, local time and sun times at the point (Open-Meteo, free, no key) ---------- */
+  var WMO = { 0: 'Açık', 1: 'Az bulutlu', 2: 'Parçalı bulutlu', 3: 'Kapalı', 45: 'Sis', 48: 'Kırağılı sis', 51: 'Hafif çisenti', 53: 'Çisenti',
+    55: 'Yoğun çisenti', 56: 'Dondurucu çisenti', 57: 'Dondurucu çisenti', 61: 'Hafif yağmur', 63: 'Yağmur', 65: 'Şiddetli yağmur',
+    66: 'Dondurucu yağmur', 67: 'Dondurucu yağmur', 71: 'Hafif kar', 73: 'Kar', 75: 'Yoğun kar', 77: 'Kar taneleri', 80: 'Hafif sağanak',
+    81: 'Sağanak', 82: 'Şiddetli sağanak', 85: 'Kar sağanağı', 86: 'Yoğun kar sağanağı', 95: 'Gök gürültülü fırtına', 96: 'Dolulu fırtına', 99: 'Dolulu fırtına' };
+  var COMPASS = ['K', 'KD', 'D', 'GD', 'G', 'GB', 'B', 'KB'];
+  function hhmm(iso) { var m = /T(\d{2}:\d{2})/.exec(iso || ''); return m ? m[1] : '—'; }
+  function localClock(offsetSec) {
+    var d = new Date(Date.now() + offsetSec * 1000);
+    var h = offsetSec / 3600, sign = h >= 0 ? '+' : '−', a = Math.abs(h);
+    var off = 'UTC' + sign + (a % 1 ? Math.floor(a) + ':' + String(Math.round((a % 1) * 60)).padStart(2, '0') : a);
+    return { time: String(d.getUTCHours()).padStart(2, '0') + ':' + String(d.getUTCMinutes()).padStart(2, '0'), off: off };
+  }
+  function tile(k, v, sub, wide) {
+    return '<div class="tile' + (wide ? ' wide' : '') + '"><span class="k">' + k + '</span><span class="v">' + GL.esc(v) + '</span>' + (sub ? '<span class="sub">' + GL.esc(sub) + '</span>' : '') + '</div>';
+  }
+  var envSeq = 0, envT = null;
+  function envInfo(lat, lng) {
+    var seq = ++envSeq, box = $('p-env');
+    box.innerHTML = '<div class="tile skel"></div><div class="tile skel"></div><div class="tile skel"></div><div class="tile skel"></div>';
+    clearTimeout(envT);
+    envT = setTimeout(function () {
+      GL.json('https://api.open-meteo.com/v1/forecast?latitude=' + lat.toFixed(4) + '&longitude=' + lng.toFixed(4) +
+        '&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m&daily=sunrise,sunset&timezone=auto&forecast_days=1', 9000)
+        .then(function (d) {
+          if (seq !== envSeq) return;
+          var c = d.current || {}, day = d.daily || {};
+          var t = typeof c.temperature_2m === 'number' ? Math.round(c.temperature_2m) + '°C' : '—';
+          var feel = typeof c.apparent_temperature === 'number' ? 'hissedilen ' + Math.round(c.apparent_temperature) + '°' : '';
+          var wind = typeof c.wind_speed_10m === 'number' ? Math.round(c.wind_speed_10m) + ' km/s' + (typeof c.wind_direction_10m === 'number' ? ' ' + COMPASS[Math.round(c.wind_direction_10m / 45) % 8] : '') : '—';
+          var clock = localClock(typeof d.utc_offset_seconds === 'number' ? d.utc_offset_seconds : 0);
+          box.innerHTML =
+            tile('Hava', t + ' · ' + (WMO[c.weather_code] || '—'), feel) +
+            tile('Rüzgâr · nem', wind, typeof c.relative_humidity_2m === 'number' ? 'nem %' + Math.round(c.relative_humidity_2m) : '') +
+            tile('Rakım', typeof d.elevation === 'number' ? Math.round(d.elevation).toLocaleString('tr-TR') + ' m' : '—', 'deniz seviyesinden') +
+            tile('Yerel saat', clock.time, clock.off + (d.timezone ? ' · ' + d.timezone : '')) +
+            tile('Gün doğumu · batımı', '↑ ' + hhmm((day.sunrise || [])[0]) + '   ↓ ' + hhmm((day.sunset || [])[0]), 'yerel saatle', true);
+        })
+        .catch(function () { if (seq === envSeq) box.innerHTML = '<div class="tile wide"><span class="sub">Hava ve rakım bilgisi şu an alınamadı.</span></div>'; });
+    }, 350);
   }
 
   /* ---------- search ---------- */

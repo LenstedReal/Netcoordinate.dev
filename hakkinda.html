@@ -30,6 +30,7 @@
       <a href="./">Harita</a>
       <a href="ip.html">IP Analizi</a>
       <a href="araclar.html">Araçlar</a>
+      <a href="araclar.html#hiz">Hız testi</a>
       <a href="hakkinda.html" aria-current="page">Hakkında</a>
     </nav>
     <div class="header-tools">
@@ -123,6 +124,7 @@
       <a href="./">Harita</a>
       <a href="ip.html">IP Analizi</a>
       <a href="araclar.html">Araçlar</a>
+      <a href="araclar.html#hiz">Hız testi</a>
       <a href="hakkinda.html">Hakkında ve gizlilik</a>
     </nav>
     <span>Harita verisi © OpenStreetMap katkıcıları</span>
@@ -135,7 +137,7 @@
 <script>
 document.getElementById('clear-data').addEventListener('click', function () {
   if (!window.confirm('Kayıtlı yerler, tema tercihi ve IP geçmişi bu tarayıcıdan silinsin mi?')) return;
-  try { ['gl-saved', 'gl-theme', 'gl-ip-history'].forEach(function (k) { localStorage.removeItem(k); }); GL.toast('Veriler silindi', 'ok'); }
+  try { ['gl-saved', 'gl-theme', 'gl-ip-history', 'gl-speed'].forEach(function (k) { localStorage.removeItem(k); }); GL.toast('Veriler silindi', 'ok'); }
   catch (e) { GL.toast('Silinemedi: tarayıcı depolamaya izin vermiyor', 'err'); }
 });
 </script>
